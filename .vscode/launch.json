@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "tap-sumologic discover",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/.venv/tap-sumologic/bin/tap-sumologic",
+            "args": [
+                "--config",
+                "${workspaceRoot}/.secrets/config.json",
+                "--discover"
+            ],
+            "console": "integratedTerminal",
+            "env": { "PYTHONPATH": "${workspaceRoot}"}
+        },
+        {
+            "name": "tap-sumologic run tap",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceRoot}/.venv/tap-sumologic/bin/tap-sumologic",
+            "args": [
+                "--config",
+                "${workspaceRoot}/.secrets/config.json",
+                "--properties",
+                "${workspaceRoot}/.secrets/properties.json"
+            ],
+            "console": "integratedTerminal",
+            "env": { "PYTHONPATH": "${workspaceRoot}"}
+        }
+    ]
+}

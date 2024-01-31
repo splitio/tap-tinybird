@@ -1,0 +1,12 @@
+ {
+    "tinybird_access_token": "ACCESS_TOKEN",
+    "tinybird_api_url": "https://api.split.tinybird.co",
+    "start_date": "2000-01-01T00:00:00",
+    "end_date": "2000-01-05T00:00:00",
+    "tables": [{
+        "table_name": "my_table",
+        "params": "orgId=aaaaaaaa-bbbb-cccc-dddd-eeeeffffgggg",
+        "query": "SELECT orgId, environmentId, sdk, sdkVersion, count() as count FROM sdk_usage__v2 group by orgId, environmentId, sdk, sdkVersion",
+        "keys": ["orgId", "environmentId", "sdk", "sdkVersion"]
+    }]
+}
