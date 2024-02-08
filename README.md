@@ -21,8 +21,12 @@ This tap:
     "tables": [{
         "table_name": "my_table",
         "params": "orgId=aaaaaaaa-bbbb-cccc-dddd-eeeeffffgggg",
-        "query": "SELECT orgId, environmentId, sdk, sdkVersion, count() as count FROM sdk_usage__v2 group by orgId, environmentId, sdk, sdkVersion",
-        "keys": ["orgId", "environmentId", "sdk", "sdkVersion"]
+        // it is important to put  "{time_query}" in the query if you want the query to be incremental
+        // this will be automatically replace with the proper condition on time_property
+        // by default we also collect all the data until 5 minutes ago to leave a buffer for data to going through a pipeline appropriately
+        "query": "SELECT orgId, environmentId, sdk, sdkVersion, count() as count FROM sdk_usage__v2 WHERE {time_query} GROUP BY orgId, environmentId, sdk, sdkVersion",
+        "keys": ["orgId", "environmentId", "sdk", "sdkVersion"],
+        "time_property": "date"
     }]
 }
 ```

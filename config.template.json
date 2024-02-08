@@ -6,7 +6,10 @@
     "tables": [{
         "table_name": "my_table",
         "params": "orgId=aaaaaaaa-bbbb-cccc-dddd-eeeeffffgggg",
-        "query": "SELECT orgId, environmentId, sdk, sdkVersion, count() as count FROM sdk_usage__v2 group by orgId, environmentId, sdk, sdkVersion",
-        "keys": ["orgId", "environmentId", "sdk", "sdkVersion"]
+        // it is important to put  "{time_query}" in the query if you want the query to be incremental
+        "query": "SELECT orgId, environmentId, sdk, sdkVersion, count() as count FROM sdk_usage__v2 WHERE {time_query} GROUP BY orgId, environmentId, sdk, sdkVersion",
+        "keys": ["orgId", "environmentId", "sdk", "sdkVersion"],
+        "time_property": "date",
+        "max_lookback_days": 3
     }]
 }

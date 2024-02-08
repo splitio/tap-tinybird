@@ -48,8 +48,22 @@ def get_schema_for_table(config: Dict, table_spec: Dict) -> Dict:
     LOGGER.info('Getting records for query to determine table schema.')
 
     params = table_spec.get('params') 
+    query = table_spec.get('query') 
+    time_property = table_spec.get('time_property') 
     
-    fields = get_fields(config, table_spec.get('query'), table_spec.get('params'))
+    if time_property:
+        dt = datetime.utcnow()
+        # truncate to the start of current day day
+        from_time = (dt.replace(hour=0, minute=0, second=0, microsecond=0) + relativedelta(days=-2)).strftime('%Y-%m-%d')
+        time_query = time_property + ' > \'' + from_time + '\' '
+        
+        q = query.format(time_query = time_query)
+    else:
+        q = query
+    
+    q += ' limit 100 '
+
+    fields = get_fields(config, q, params)
 
     key_properties = table_spec.get('keys')
     for field in fields:
@@ -78,15 +92,7 @@ def get_schema_for_table(config: Dict, table_spec: Dict) -> Dict:
 def get_fields(config, q, params):
     fields = []
 
-    tinybird_access_token = config['tinybird_access_token']
-    tinybird_api_url = config['tinybird_api_url']
-
-    LOGGER.info("Run query in tinybird")
-    tb_api = API(tinybird_access_token, tinybird_api_url)    
-    
-    response = tb_api.post("/sql", data=q + " FORMAT JSON", params=params)
-
-    LOGGER.info(response.status_code)
+    response = run_query(config, q, params)
 
     if response.status_code == 200:
         fields = response.json()['meta']
@@ -95,13 +101,7 @@ def get_fields(config, q, params):
 
 # TODO fix
 def get_records(config, q, params, limit):
-    records = []
-
-    tinybird_access_token = config['tinybird_access_token']
-    tinybird_api_url = config['tinybird_api_url']
-
-    LOGGER.info("Run query in sumologic")
-    tb_api = API(tinybird_access_token, tinybird_api_url)    
+    records = []   
 
     now_datetime = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')
     custom_columns = {
@@ -112,9 +112,7 @@ def get_records(config, q, params, limit):
     
     #LOGGER.debug("Get records %d of %d, limit=%d", count, record_count, limit)
     # TODO apply the limit
-    response = tb_api.post("/sql", data=q + " FORMAT JSON", params=params)
-    
-    LOGGER.info(response.status_code)
+    response = run_query(config, q, params)
 
     if response.status_code == 200:
         response_json = response.json()
@@ -139,6 +137,19 @@ def get_records(config, q, params, limit):
             #    break # make sure we exit if nothing comes back
 
     return records
+
+def run_query(config, q, params):
+    tinybird_access_token = config['tinybird_access_token']
+    tinybird_api_url = config['tinybird_api_url']
+
+    LOGGER.info("Run query in tinybird with query: " + q)
+    tb_api = API(tinybird_access_token, tinybird_api_url)
+    
+    response = tb_api.post("/sql", data=q + " FORMAT JSON", params=params)
+
+    LOGGER.info(response.status_code)
+    return response
+    
         
         
  
