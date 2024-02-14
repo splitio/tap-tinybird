@@ -124,7 +124,7 @@ def get_records(config, q, params, limit):
         #while count < record_count:
         # TODO move query in here to get the pages
             
-            #LOGGER.debug("Got records %d of %d", count, record_count)
+        LOGGER.info("Got %d records ", record_count)
 
             #recs = response['records']
             # extract the result maps to put them in the list of records
@@ -142,10 +142,16 @@ def run_query(config, q, params):
     tinybird_access_token = config['tinybird_access_token']
     tinybird_api_url = config['tinybird_api_url']
 
-    LOGGER.info("Run query in tinybird with query: " + q)
+    LOGGER.info("Init tinybird client with url: " + tinybird_api_url)
     tb_api = API(tinybird_access_token, tinybird_api_url)
-    
-    response = tb_api.post("/sql", data=q + " FORMAT JSON", params=params)
+
+    data = q + " FORMAT JSON"
+    if params is None:
+        p = "no params"
+    else:
+        p = params
+    LOGGER.info("Run post in tinybird with query: " + data + " - params: " + p)    
+    response = tb_api.post("/sql", data=data, params=params)
 
     LOGGER.info(response.status_code)
     return response
