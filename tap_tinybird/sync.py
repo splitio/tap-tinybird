@@ -47,15 +47,15 @@ def sync_stream(config: Dict, state: Dict, table_spec: Dict, stream: Dict) -> in
         
         to_time = end_time.strftime('%Y-%m-%dT%H:%M:%S')
             
-        time_query = '('
+        time_query = "("
         if from_time:
-            time_query += time_property + ' >= \'' + from_time + '\''
+            time_query += time_property + " >= '" + from_time + "'"
             if to_time:
-                time_query += ' AND '
+                time_query += " AND "
             
         if to_time:
-            time_query += time_property + ' <= \'' + to_time + '\''
-        time_query += ')'
+            time_query += time_property + " <= '" + to_time + "'"
+        time_query += ")"
         
         q = q.format(time_query=time_query)
         
