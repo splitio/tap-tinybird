@@ -110,31 +110,18 @@ def get_records(config, q, params, limit):
         '_SDC_DELETED_AT': None
     }
     
-    #LOGGER.debug("Get records %d of %d, limit=%d", count, record_count, limit)
-    # TODO apply the limit
+    q += " LIMIT " + str(limit)
     response = run_query(config, q, params)
 
     if response.status_code == 200:
         response_json = response.json()
         record_count = response_json['rows']
         response_records = response_json['data']
-        
-        # TODO implement paging
-        #count = 0
-        #while count < record_count:
-        # TODO move query in here to get the pages
             
         LOGGER.info("Got %d records ", record_count)
 
-            #recs = response['records']
-            # extract the result maps to put them in the list of records
         for rec in response_records:
             records.append({**rec, **custom_columns})
-
-            #if len(recs) > 0:
-            #    count = count + len(recs)
-            #else:
-            #    break # make sure we exit if nothing comes back
 
     return records
 

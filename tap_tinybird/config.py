@@ -9,6 +9,7 @@ CONFIG_CONTRACT = Schema([{
     Required('query'): str,
     Required('keys'): [str],
     Optional('time_property'): str,
+    Optional('time_bucket'): str,
     Optional('max_lookback_days'): int,
     Optional('start_date'): str,
     Optional('end_date'): str,
