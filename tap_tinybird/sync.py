@@ -188,12 +188,12 @@ def sync_stream_incremental(config: Dict, state: Dict, table_spec: Dict, stream:
         
         time_query = "("
         if from_time:
-            time_query += time_property + " > toDate('" + from_time + "')"
+            time_query += time_property + " > '" + from_time + "'"
             if to_time:
                 time_query += " AND "
             
         if to_time:
-            time_query += time_property + " <= toDate('" + to_time + "')"
+            time_query += time_property + " <= '" + to_time + "'"
         time_query += ")"
         
         LOGGER.info('Getting records since %s to %s.', modified_since, to_time)
