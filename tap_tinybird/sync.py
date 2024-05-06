@@ -204,7 +204,11 @@ def sync_stream_incremental(config: Dict, state: Dict, table_spec: Dict, stream:
         records = tinybird.get_records(config, full_query, params, limit=100000)
 
         records_synced = 0
-        max_time = "0"
+        if from_time:
+            max_time = from_time
+        else:
+            max_time = "0"
+            
         loop_count += 1
 
         for record in records:
