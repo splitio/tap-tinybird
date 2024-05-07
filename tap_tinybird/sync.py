@@ -157,11 +157,15 @@ def sync_stream_incremental(config: Dict, state: Dict, table_spec: Dict, stream:
     
     LOGGER.info('Syncing table "%s".', table_name)
     
-    modified_since = get_bookmark(state, table_name, 'modified_since') or config['start_date']
-    end_date = config.get('end_date')
+    bookmark_time_str = get_bookmark(state, table_name, 'modified_since')
+    bookmark_time = datetime.strptime(bookmark_time_str, '%Y-%m-%d %H:%M:%S.%f') if bookmark_time_str else None
+    config_start_date = datetime.strptime(config['start_date'], '%Y-%m-%d %H:%M:%S')
+    
+    modified_since = bookmark_time or config_start_date
+    config_end_date = datetime.strptime(config.get('end_date'), '%Y-%m-%d %H:%M:%S') if config.get('end_date') else None
     max_lookback_days = table_spec.get("max_lookback_days") or 90
 
-    LOGGER.info('Config info - start_date: %s - end_date: %s', config['start_date'], end_date)
+    LOGGER.info('Config info - start_date: %s - end_date: %s', config_start_date, config_end_date)
 
     dt = datetime.utcnow()
     # truncate based on time bucket
@@ -172,13 +176,13 @@ def sync_stream_incremental(config: Dict, state: Dict, table_spec: Dict, stream:
         end_time = dt.replace(minute=0, second=0, microsecond=0)
         
     # if we have an end_date use it
-    if end_date:
-        end_time = datetime.strptime(end_date, '%Y-%m-%dT%H:%M:%S')
+    if config_end_date:
+        end_time = config_end_date
         
-    max_lookback_date = (end_time + relativedelta(days=-max_lookback_days)).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
-    from_time = modified_since if modified_since > max_lookback_date else max_lookback_date
+    max_lookback_date = end_time + relativedelta(days=-max_lookback_days)
     
-    to_time = end_time.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3]
+    from_time = (modified_since if modified_since > max_lookback_date else max_lookback_date).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+    to_time = end_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
 
     total_records_synced = 0
     records_synced = 1 # greater than 0 to enter the loop
@@ -208,7 +212,6 @@ def sync_stream_incremental(config: Dict, state: Dict, table_spec: Dict, stream:
             max_time = from_time
         else:
             max_time = "0"
-            
         loop_count += 1
 
         for record in records:
