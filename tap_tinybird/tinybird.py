@@ -59,7 +59,7 @@ def get_schema_for_table(config: Dict, table_spec: Dict) -> Dict:
             from_time = (dt.replace(hour=0, minute=0, second=0, microsecond=0) + relativedelta(days=-31)).strftime('%Y-%m-%d')
         else:
             from_time = (dt.replace(hour=0, minute=0, second=0, microsecond=0) + relativedelta(days=-2)).strftime('%Y-%m-%d')
-        time_query = time_property + ' > \'' + from_time + '\''
+        time_query = time_property + ' >= \'' + from_time + '\''
         
         q = query.format(time_query = time_query)
     else:
