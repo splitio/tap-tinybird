@@ -78,40 +78,22 @@ def sync_stream_by_time(config: Dict, state: Dict, table_spec: Dict, stream: Dic
     
     LOGGER.info('Syncing table "%s".', table_name)
     
-    modified_since = get_bookmark(state, table_name, 'modified_since') or config['start_date']
-    end_date = config.get('end_date')
+    bookmark_time_str = get_bookmark(state, table_name, 'modified_since')    
     max_lookback_days = table_spec.get("max_lookback_days") or 90
 
-    LOGGER.info('Config info - start_date: %s - end_date: %s', config['start_date'], end_date)
-
-    dt = datetime.utcnow()
-    # truncate based on time bucket
-    end_time = dt
-    if time_bucket == 'day': 
-        end_time = dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    elif time_bucket == 'hour': 
-        end_time = dt.replace(minute=0, second=0, microsecond=0)
-        
-    # if we have an end_date use it
-    if end_date:
-        end_time = datetime.strptime(end_date, '%Y-%m-%dT%H:%M:%S')
-        
-    max_lookback_date = (end_time + relativedelta(days=-max_lookback_days)).strftime('%Y-%m-%dT%H:%M:%S')
-    from_time = modified_since if modified_since > max_lookback_date else max_lookback_date
-    
-    to_time = end_time.strftime('%Y-%m-%dT%H:%M:%S')
+    from_time, to_time = get_date_range(config, state, bookmark_time_str, max_lookback_days, time_bucket)
         
     time_query = "("
     if from_time:
-        time_query += time_property + " > toDate('" + from_time + "')"
+        time_query += time_property + " > '" + from_time + "'"
         if to_time:
             time_query += " AND "
         
     if to_time:
-        time_query += time_property + " <= toDate('" + to_time + "')"
+        time_query += time_property + " <= '" + to_time + "'"
     time_query += ")"
     
-    LOGGER.info('Getting records since %s to %s.', modified_since, to_time)
+    LOGGER.info('Getting records since %s to %s.', from_time, to_time)
     full_query = q.format(time_query=time_query)
             
     LOGGER.info('Syncing query "%s" with params %s.', full_query, params)
@@ -157,33 +139,11 @@ def sync_stream_incremental(config: Dict, state: Dict, table_spec: Dict, stream:
     
     LOGGER.info('Syncing table "%s".', table_name)
     
-    bookmark_time_str = get_bookmark(state, table_name, 'modified_since')
-    bookmark_time = datetime.strptime(bookmark_time_str, '%Y-%m-%d %H:%M:%S.%f') if bookmark_time_str else None
-    config_start_date = datetime.strptime(config['start_date'], '%Y-%m-%d %H:%M:%S')
-    
-    modified_since = bookmark_time or config_start_date
-    config_end_date = datetime.strptime(config.get('end_date'), '%Y-%m-%d %H:%M:%S') if config.get('end_date') else None
+    bookmark_time_str = get_bookmark(state, table_name, 'modified_since')    
     max_lookback_days = table_spec.get("max_lookback_days") or 90
 
-    LOGGER.info('Config info - start_date: %s - end_date: %s', config_start_date, config_end_date)
-
-    dt = datetime.utcnow()
-    # truncate based on time bucket
-    end_time = dt
-    if time_bucket == 'day': 
-        end_time = dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    elif time_bucket == 'hour': 
-        end_time = dt.replace(minute=0, second=0, microsecond=0)
-        
-    # if we have an end_date use it
-    if config_end_date:
-        end_time = config_end_date
-        
-    max_lookback_date = end_time + relativedelta(days=-max_lookback_days)
+    from_time, to_time = get_date_range(config, state, bookmark_time_str, max_lookback_days, time_bucket)
     
-    from_time = (modified_since if modified_since > max_lookback_date else max_lookback_date).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-    to_time = end_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-
     total_records_synced = 0
     records_synced = 1 # greater than 0 to enter the loop
     loop_count = 0
@@ -200,7 +160,7 @@ def sync_stream_incremental(config: Dict, state: Dict, table_spec: Dict, stream:
             time_query += time_property + " <= '" + to_time + "'"
         time_query += ")"
         
-        LOGGER.info('Getting records since %s to %s.', modified_since, to_time)
+        LOGGER.info('Getting records since %s to %s.', from_time, to_time)
         full_query = q.format(time_query=time_query)
                 
         LOGGER.info('Syncing query "%s" with params %s.', full_query, params)
@@ -235,3 +195,44 @@ def sync_stream_incremental(config: Dict, state: Dict, table_spec: Dict, stream:
 
     return total_records_synced
 
+
+# return two strings for "from_time" and "to_time" with format %Y-%m-%d %H:%M:%S.%f
+def get_date_range(config: Dict, state: Dict, bookmark_time_str: str, max_lookback_days: int, time_bucket: str):
+    bookmark_time = datetime.strptime(bookmark_time_str, '%Y-%m-%d %H:%M:%S.%f') if bookmark_time_str else None
+    config_start_date = datetime.strptime(config['start_date'], '%Y-%m-%d %H:%M:%S')
+    
+    modified_since = bookmark_time or config_start_date
+    config_end_date = datetime.strptime(config.get('end_date'), '%Y-%m-%d %H:%M:%S') if config.get('end_date') else None
+
+    LOGGER.info('Config info - start_date: %s - end_date: %s', config_start_date, config_end_date)
+
+    dt = datetime.utcnow()
+    
+    # if we have an end_date use it
+    if config_end_date:
+        to_time_date = config_end_date
+    # otherwise use now
+    else:
+        to_time_date = dt
+        
+    # truncate based on time bucket
+    # by setting the end time it will automatically align the start also to a day or an hour start
+    if time_bucket == 'day': 
+        to_time_date = to_time_date.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif time_bucket == 'hour': 
+        to_time_date = to_time_date.replace(minute=0, second=0, microsecond=0)
+    # for month let it end at anytime but we will force the start at the beginning of the month
+        
+    max_lookback_date = to_time_date + relativedelta(days=-max_lookback_days)
+    from_time_date = (modified_since if modified_since > max_lookback_date else max_lookback_date)
+    
+    # for month bucket make sure we start at the beginning of a month
+    if time_bucket == 'month':
+        from_time_date = from_time_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    if time_bucket == 'day' or time_bucket == 'month':
+        return from_time_date.strftime('%Y-%m-%d'), to_time_date.strftime('%Y-%m-%d')
+    elif time_bucket == 'hour':
+        return from_time_date.strftime('%Y-%m-%d %H:%M:%S'), to_time_date.strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        return from_time_date.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], to_time_date.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
