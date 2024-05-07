@@ -198,7 +198,11 @@ def sync_stream_incremental(config: Dict, state: Dict, table_spec: Dict, stream:
 
 # return two strings for "from_time" and "to_time" with format %Y-%m-%d %H:%M:%S.%f
 def get_date_range(config: Dict, state: Dict, bookmark_time_str: str, max_lookback_days: int, time_bucket: str):
-    bookmark_time = datetime.strptime(bookmark_time_str, '%Y-%m-%d %H:%M:%S.%f') if bookmark_time_str else None
+    bookmark_time = None
+    try:
+        bookmark_time = datetime.strptime(bookmark_time_str, '%Y-%m-%d %H:%M:%S.%f') if bookmark_time_str else None
+    except ValueError as ve:
+        bookmark_time = None
     config_start_date = datetime.strptime(config['start_date'], '%Y-%m-%d %H:%M:%S')
     
     modified_since = bookmark_time or config_start_date
