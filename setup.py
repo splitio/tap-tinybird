@@ -13,7 +13,7 @@ setup(
             'singer-python>=5.0.12',
             'requests',
             'pendulum',
-            'tb-python @ git+https://github.com/tinybirdco/tinybird-python-sdk',
+            'tinybird-python-sdk @ git+https://github.com/tinybirdco/tinybird-python-sdk',
             'ujson',
             'voluptuous==0.10.5'
       ],
